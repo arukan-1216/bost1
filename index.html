@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ブーストエリア選択ツール</title>
+    <style>
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(8, 40px);
+            grid-template-rows: repeat(6, 40px);
+            gap: 2px;
+            margin-bottom: 20px;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ccc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .overlap {
+            border: 4px solid darkred !important;
+        }
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .character-select {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <h2>グリッド選択ツール</h2>
+    <div class="controls">
+        <script>
+            const characters = {
+                "ルルー": { color: "#FFCCCC", positions: [[2,0], [2,1], [1,1], [1,2], [1,3], [0,3], [0,4]] },
+                "アルル": { color: "#CCCCFF", positions: [[4,0], [3,1], [3,2], [3,3], [4,2], [4,3], [4,4]] },
+                "ドラコ": { color: "#CCFFCC", positions: [[5,0], [5,1], [6,1], [6,2], [6,3], [7,3], [7,4]] },
+                "ウィッチ": { color: "#FFFFCC", positions: [[0,0], [1,0], [0,1], [0,2], [2,2], [2,3], [1,4]] },
+                "シェゾ": { color: "#E0CCFF", positions: [[6,0], [7,0], [7,1], [7,2], [5,2], [5,3], [6,4]] },
+                "リンゴ": { color: "#FFCCE5", positions: [[5,0], [6,0], [6,1], [6,2], [5,2], [6,3], [5,4]] },
+                "まぐろ": { color: "#CCE5FF", positions: [[1,0], [2,0], [1,1], [1,2], [2,2], [1,3], [0,4]] },
+                "りすクマ先輩": { color: "#E5CC99", positions: [[3,0], [4,0], [3,2], [4,2], [3,3], [3,4], [2,3]] }
+            };
+
+            for (let i = 1; i <= 6; i++) {
+                document.write(`
+                    <div class="character-select">
+                        <label>キャラクター枠${i}:</label>
+                        <select class="selection">
+                            <option value="なし" selected>なし</option>
+                            ${Object.keys(characters).map(char => `<option value="${char}">${char}</option>`).join('')}
+                        </select>
+                    </div>
+                `);
+            }
+        </script>
+    </div>
+    <div class="grid" id="grid"></div>
+    <script>
+        const grid = document.getElementById("grid");
+        const selections = document.querySelectorAll(".selection");
+
+        function updateGrid() {
+            document.querySelectorAll(".cell").forEach(cell => {
+                cell.style.backgroundColor = "";
+                cell.classList.remove("overlap");
+            });
+
+            let occupied = {};
+            selections.forEach(select => {
+                const char = select.value;
+                if (char !== "なし" && characters[char]) {
+                    characters[char].positions.forEach(([x, y]) => {
+                        const cell = document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
+                        if (cell) {
+                            cell.style.backgroundColor = characters[char].color;
+                            if (!occupied[`${x},${y}`]) {
+                                occupied[`${x},${y}`] = 0;
+                            }
+                            occupied[`${x},${y}`]++;
+                            if (occupied[`${x},${y}`] > 1) {
+                                cell.classList.add("overlap");
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        for (let y = 5; y >= 0; y--) {
+            for (let x = 0; x < 8; x++) {
+                const cell = document.createElement("div");
+                cell.className = "cell";
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+                grid.appendChild(cell);
+            }
+        }
+
+        selections.forEach(select => select.addEventListener("change", updateGrid));
+    </script>
+</body>
+</html>
