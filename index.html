@@ -22,7 +22,7 @@
             position: relative;
         }
         .overlap-mark {
-            color: darkred;
+            color: #000;
             font-size: 20px;
             position: absolute;
         }
@@ -65,7 +65,7 @@
                 "まぐろ": { color: "#CCE5FF", positions: [[1,0], [2,0], [1,1], [1,2], [2,2], [1,3], [0,4]] },
                 "りすクマ先輩": { color: "#E5CC99", positions: [[3,0], [4,0], [3,2], [4,2], [3,3], [3,4], [2,3]] },
                 "ラフィーナ": { color: "#FFD700", positions: [[6,0], [6,1], [7,1], [5,2], [5,3], [7,3], [6,4]] },
-                "クルーク": { color: "#800080", positions: [[1,0], [0,1], [1,1], [2,2], [0,3], [2,3], [1,4]] }
+                "クルーク": { color: "#9932CC", positions: [[1,0], [0,1], [1,1], [2,2], [0,3], [2,3], [1,4]] }
             };
 
             for (let i = 1; i <= 6; i++) {
@@ -120,10 +120,12 @@
                 const [x, y] = key.split(',');
                 if (count > 1) {
                     const cell = document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
-                    const mark = document.createElement("div");
-                    mark.className = "overlap-mark";
-                    mark.textContent = "◯";
-                    cell.appendChild(mark);
+                    if (!cell.querySelector(".overlap-mark")) {
+                        const mark = document.createElement("div");
+                        mark.className = "overlap-mark";
+                        mark.textContent = "◯";
+                        cell.appendChild(mark);
+                    }
                     overlap++;
                 } else {
                     unique++;
