@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ブーストエリア選択ツール</title>
+    <title>ブーストエリア重なり確認ツール</title>
     <style>
         .grid {
             display: grid;
@@ -15,20 +15,17 @@
         .cell {
             width: 40px;
             height: 40px;
-            border: 2px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background-color: white;
             position: relative;
         }
-        .overlap {
-            border: 4px solid darkred !important;
-        }
         .overlap::after {
-            content: '\25CB'; /* Unicode circle */
+            content: '◯';
             color: darkred;
-            font-size: 20px;
+            font-size: 24px;
             position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         .controls {
             display: flex;
@@ -40,21 +37,30 @@
             display: flex;
             flex-direction: column;
         }
-        .summary {
-            margin-bottom: 20px;
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
         }
-        .deck-list {
-            margin-top: 30px;
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <h2>グリッド選択ツール</h2>
+    <h2>ブーストエリア重なり確認ツール</h2>
     <div class="controls" id="controls"></div>
-    <button onclick="saveDeck()">デッキを保存する</button>
-    <div class="summary" id="summary"></div>
+    <button id="saveDeck">デッキを保存する</button>
+    <p id="countDisplay"></p>
     <div class="grid" id="grid"></div>
-    <div class="deck-list" id="deckList"></div>
+    <h3>保存されたデッキ</h3>
+    <table id="savedDecks">
+        <thead>
+            <tr><th>デッキ</th><th>重なりなし</th><th>重なりあり</th></tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 
     <script>
         const characters = {
@@ -66,33 +72,37 @@
             "リンゴ": { color: "#FFCCE5", positions: [[5,0], [6,0], [6,1], [6,2], [5,2], [6,3], [5,4]] },
             "まぐろ": { color: "#CCE5FF", positions: [[1,0], [2,0], [1,1], [1,2], [2,2], [1,3], [0,4]] },
             "りすクマ先輩": { color: "#E5CC99", positions: [[3,0], [4,0], [3,2], [4,2], [3,3], [3,4], [2,3]] },
-            "ラフィーナ": { color: "#FFD700", positions: [[6,0], [6,1], [7,1], [5,2], [5,3], [7,3], [6,4]] },
-            "クルーク": { color: "#9933CC", positions: [[1,0], [0,1], [1,1], [2,2], [0,3], [2,3], [1,4]] }
+            "ラフィーナ": { color: "#FFD700", positions: [[6,0],[6,1],[7,1],[5,2],[5,3],[7,3],[6,4]] },
+            "クルーク": { color: "#800080", positions: [[1,0],[0,1],[1,1],[2,2],[0,3],[2,3],[1,4]] }
         };
 
         const controls = document.getElementById("controls");
-        for (let i = 0; i < 6; i++) {
+        for (let i = 1; i <= 6; i++) {
             const div = document.createElement("div");
             div.className = "character-select";
-            const label = document.createElement("label");
-            label.textContent = `キャラクター枠${i+1}：`;
-            const select = document.createElement("select");
-            select.className = "selection";
-            select.innerHTML = `<option value="なし">なし</option>` + Object.keys(characters).map(name => `<option value="${name}">${name}</option>`).join('');
-            div.appendChild(label);
-            div.appendChild(select);
+            div.innerHTML = `<label>キャラクター枠${i}:</label><select class="selection"><option value="なし">なし</option>${Object.keys(characters).map(char => `<option value="${char}">${char}</option>`).join('')}</select>`;
             controls.appendChild(div);
         }
 
         const grid = document.getElementById("grid");
-        const summary = document.getElementById("summary");
-        const deckList = document.getElementById("deckList");
         const selections = document.querySelectorAll(".selection");
-        let deckHistory = [];
+        const countDisplay = document.getElementById("countDisplay");
+        const savedDecksBody = document.querySelector("#savedDecks tbody");
+        const savedConfigs = [];
+
+        for (let y = 5; y >= 0; y--) {
+            for (let x = 0; x < 8; x++) {
+                const cell = document.createElement("div");
+                cell.className = "cell";
+                cell.dataset.x = x;
+                cell.dataset.y = y;
+                grid.appendChild(cell);
+            }
+        }
 
         function updateGrid() {
             document.querySelectorAll(".cell").forEach(cell => {
-                cell.style.backgroundColor = "";
+                cell.style.backgroundColor = "white";
                 cell.classList.remove("overlap");
                 cell.textContent = "";
             });
@@ -107,67 +117,39 @@
                         if (cell) {
                             cell.style.backgroundColor = characters[char].color;
                             occupied[key] = (occupied[key] || 0) + 1;
+                            if (occupied[key] > 1) {
+                                cell.classList.add("overlap");
+                                cell.textContent = "◯";
+                            }
                         }
                     });
                 }
             });
 
-            let overlap = 0, unique = 0;
-            Object.entries(occupied).forEach(([key, count]) => {
-                const [x, y] = key.split(',');
-                const cell = document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
-                if (count > 1) {
-                    overlap++;
-                    if (cell) {
-                        cell.classList.add("overlap");
-                    }
-                } else {
-                    unique++;
-                }
-            });
-
-            summary.innerHTML = `重なっていないブーストエリアの数: ${unique}<br>重なっているブーストエリアの数: ${overlap}`;
-        }
-
-        for (let y = 5; y >= 0; y--) {
-            for (let x = 0; x < 8; x++) {
-                const cell = document.createElement("div");
-                cell.className = "cell";
-                cell.dataset.x = x;
-                cell.dataset.y = y;
-                grid.appendChild(cell);
-            }
+            const total = Object.values(occupied).reduce((acc, v) => acc + 1, 0);
+            const overlap = Object.values(occupied).filter(v => v > 1).length;
+            const nonOverlap = total - overlap;
+            countDisplay.textContent = `重なっていない: ${nonOverlap}個 ／ 重なっている: ${overlap}個`;
+            return { nonOverlap, overlap };
         }
 
         selections.forEach(select => select.addEventListener("change", updateGrid));
 
-        function saveDeck() {
-            const chosen = Array.from(selections).map(sel => sel.value);
-            const uniqueDeckKey = chosen.join(",");
+        document.getElementById("saveDeck").addEventListener("click", () => {
+            const current = Array.from(selections).map(s => s.value);
+            if (current.every(c => c === "なし")) return;
 
-            let occupied = {};
-            chosen.forEach(name => {
-                if (name !== "なし" && characters[name]) {
-                    characters[name].positions.forEach(([x, y]) => {
-                        const key = `${x},${y}`;
-                        occupied[key] = (occupied[key] || 0) + 1;
-                    });
-                }
-            });
+            const duplicate = savedConfigs.some(cfg => JSON.stringify(cfg.decks) === JSON.stringify(current));
+            if (!duplicate) {
+                const result = updateGrid();
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${current.join(', ')}</td><td>${result.nonOverlap}</td><td>${result.overlap}</td>`;
+                savedDecksBody.appendChild(tr);
+                savedConfigs.push({ decks: current });
+            }
+        });
 
-            let overlap = 0, unique = 0;
-            Object.values(occupied).forEach(count => {
-                if (count > 1) overlap++;
-                else unique++;
-            });
-
-            const div = document.createElement("div");
-            div.innerHTML = `<strong>デッキ:</strong> ${chosen.join(' / ')}<br>
-                            重なっていないブーストエリアの数: ${unique}<br>
-                            重なっているブーストエリアの数: ${overlap}`;
-
-            deckList.appendChild(div);
-        }
+        updateGrid();
     </script>
 </body>
 </html>
