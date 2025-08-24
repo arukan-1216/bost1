@@ -1,113 +1,190 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ブーストエリア確認ツール</title>
-    <style>
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(8, 40px);
-            grid-template-rows: repeat(6, 40px);
-            gap: 2px;
-            margin-bottom: 20px;
-        }
-        .cell {
-            width: 40px;
-            height: 40px;
-            border: 2px solid #ccc;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .overlap {
-            border: 4px solid darkred !important;
-        }
-        .controls {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        .character-select {
-            display: flex;
-            flex-direction: column;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ブーストエリア確認ツール</title>
+<style>
+  body { font-family: sans-serif; padding: 20px; background:#f7f7f7; }
+  h2,h3 { margin-bottom: 10px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; background:#fff; padding:10px; border-radius:8px; box-shadow:0 0 5px rgba(0,0,0,0.1);}
+  .character-select { display: flex; flex-direction: column; }
+  .grid { display: grid; grid-template-columns: repeat(8, 40px); grid-template-rows: repeat(6, 40px); gap: 2px; margin-bottom: 15px; }
+  .cell { width: 40px; height: 40px; border: 2px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 20px; border-radius:4px; }
+  .overlap { color: #000; font-weight: bold; }
+  .stats { margin-bottom: 10px; font-weight:bold; }
+  .history { background:#fff; padding:10px; border-radius:8px; box-shadow:0 0 5px rgba(0,0,0,0.1);}
+  .history button { margin-left:5px; }
+  ul { list-style:none; padding:0; }
+  li { margin-bottom:5px; display:flex; align-items:center; justify-content:space-between; background:#f0f0f0; padding:5px 10px; border-radius:4px;}
+</style>
 </head>
 <body>
-    <h2>ブーストエリア確認ツール</h2>
-    <div class="controls">
-        <script>
-            const characters = {
-                "ルルー": { color: "#FFCCCC", positions: [[2,0], [2,1], [1,1], [1,2], [1,3], [0,3], [0,4]] },
-                "アルル": { color: "#CCCCFF", positions: [[4,0], [3,1], [3,2], [3,3], [4,2], [4,3], [4,4]] },
-                "ドラコ": { color: "#CCFFCC", positions: [[5,0], [5,1], [6,1], [6,2], [6,3], [7,3], [7,4]] },
-                "ウィッチ": { color: "#FFFFCC", positions: [[0,0], [1,0], [0,1], [0,2], [2,2], [2,3], [1,4]] },
-                "シェゾ": { color: "#E0CCFF", positions: [[6,0], [7,0], [7,1], [7,2], [5,2], [5,3], [6,4]] },
-                "リンゴ": { color: "#FFCCE5", positions: [[5,0], [6,0], [6,1], [6,2], [5,2], [6,3], [5,4]] },
-                "まぐろ": { color: "#CCE5FF", positions: [[1,0], [2,0], [1,1], [1,2], [2,2], [1,3], [0,4]] },
-                "りすクマ先輩": { color: "#E5CC99", positions: [[3,0], [4,0], [3,2], [4,2], [3,3], [3,4], [2,3]] },
-                "ハーピー": { color: "#FFD700", positions: [[0,0], [1,0], [0,1], [0,2], [2,2], [2,3], [2,4]] },
-                "セリリ": { color: "#00FFFF", positions: [[4,0], [3,1], [3,2], [4,2], [3,3], [3,4], [5,4]] }
-            };
+<h2>ブーストエリア確認ツール</h2>
 
-            for (let i = 1; i <= 6; i++) {
-                document.write(`
-                    <div class="character-select">
-                        <label>キャラクター枠${i}:</label>
-                        <select class="selection">
-                            <option value="なし" selected>なし</option>
-                            ${Object.keys(characters).map(char => `<option value="${char}">${char}</option>`).join('')}
-                        </select>
-                    </div>
-                `);
-            }
-        </script>
-    </div>
-    <div class="grid" id="grid"></div>
-    <script>
-        const grid = document.getElementById("grid");
-        const selections = document.querySelectorAll(".selection");
+<div class="stats">
+  <span id="total">ブーストエリア: 0</span> |
+  <span id="overlapCount">重なり: 0</span>
+</div>
 
-        function updateGrid() {
-            document.querySelectorAll(".cell").forEach(cell => {
-                cell.style.backgroundColor = "";
-                cell.classList.remove("overlap");
-            });
+<div class="controls" id="controls"></div>
 
-            let occupied = {};
-            selections.forEach(select => {
-                const char = select.value;
-                if (char !== "なし" && characters[char]) {
-                    characters[char].positions.forEach(([x, y]) => {
-                        const cell = document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
-                        if (cell) {
-                            cell.style.backgroundColor = characters[char].color;
-                            if (!occupied[`${x},${y}`]) {
-                                occupied[`${x},${y}`] = 0;
-                            }
-                            occupied[`${x},${y}`]++;
-                            if (occupied[`${x},${y}`] > 1) {
-                                cell.classList.add("overlap");
-                            }
-                        }
-                    });
-                }
-            });
+<div class="grid" id="grid"></div>
+
+<div class="history">
+  <h3>履歴</h3>
+  <button id="saveHistoryBtn">履歴を保存</button>
+  <button id="clearHistoryBtn">履歴をクリア</button>
+  <ul id="historyList"></ul>
+</div>
+
+<script>
+const characters = {
+  "ルルー": { color: "#FFCCCC", positions: [[2,0],[2,1],[1,1],[1,2],[1,3],[0,3],[0,4]] },
+  "アルル": { color: "#CCCCFF", positions: [[4,0],[3,1],[3,2],[3,3],[4,2],[4,3],[4,4]] },
+  "ドラコ": { color: "#CCFFCC", positions: [[5,0],[5,1],[6,1],[6,2],[6,3],[7,3],[7,4]] },
+  "ウィッチ": { color: "#FFFFCC", positions: [[0,0],[1,0],[0,1],[0,2],[2,2],[2,3],[1,4]] },
+  "シェゾ": { color: "#E0CCFF", positions: [[6,0],[7,0],[7,1],[7,2],[5,2],[5,3],[6,4]] },
+  "リンゴ": { color: "#FFCCE5", positions: [[5,0],[6,0],[6,1],[6,2],[5,2],[6,3],[5,4]] },
+  "まぐろ": { color: "#CCE5FF", positions: [[1,0],[2,0],[1,1],[1,2],[2,2],[1,3],[0,4]] },
+  "りすクマ先輩": { color: "#E5CC99", positions: [[3,0],[4,0],[3,2],[4,2],[3,3],[3,4],[2,3]] },
+  "ハーピー": { color: "#FF9999", positions: [[0,0],[1,0],[0,1],[0,2],[2,2],[2,3],[2,4]] },
+  "セリリ": { color: "#99FF99", positions: [[4,0],[3,1],[3,2],[4,2],[3,3],[3,4],[5,4]] }
+};
+
+const controlsDiv = document.getElementById("controls");
+const gridDiv = document.getElementById("grid");
+const totalSpan = document.getElementById("total");
+const overlapSpan = document.getElementById("overlapCount");
+const historyList = document.getElementById("historyList");
+const saveHistoryBtn = document.getElementById("saveHistoryBtn");
+const clearHistoryBtn = document.getElementById("clearHistoryBtn");
+
+// キャラクター枠6つ生成
+for(let i=1;i<=6;i++){
+  const div = document.createElement("div");
+  div.className="character-select";
+  div.innerHTML = `
+    <label>キャラクター枠${i}:</label>
+    <select class="selection">
+      <option value="なし" selected>なし</option>
+      ${Object.keys(characters).map(c=>`<option value="${c}">${c}</option>`).join('')}
+    </select>
+  `;
+  controlsDiv.appendChild(div);
+}
+
+// グリッド生成
+for(let y=5;y>=0;y--){
+  for(let x=0;x<8;x++){
+    const cell = document.createElement("div");
+    cell.className="cell";
+    cell.dataset.x=x;
+    cell.dataset.y=y;
+    gridDiv.appendChild(cell);
+  }
+}
+
+const selections = document.querySelectorAll(".selection");
+
+function updateGrid(){
+  const occupied = {};
+  document.querySelectorAll(".cell").forEach(c=>{
+    c.style.backgroundColor="";
+    c.textContent="";
+    c.classList.remove("overlap");
+  });
+
+  // 選択順で塗りつぶし
+  selections.forEach(select=>{
+    const char = select.value;
+    if(char!=="なし" && characters[char]){
+      characters[char].positions.forEach(([x,y])=>{
+        const key=`${x},${y}`;
+        if(!occupied[key]) occupied[key]=0;
+        occupied[key]++;
+        const cell=document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
+        if(cell){
+          cell.style.backgroundColor=characters[char].color;
         }
+      });
+    }
+  });
 
-        for (let y = 5; y >= 0; y--) {
-            for (let x = 0; x < 8; x++) {
-                const cell = document.createElement("div");
-                cell.className = "cell";
-                cell.dataset.x = x;
-                cell.dataset.y = y;
-                grid.appendChild(cell);
-            }
-        }
+  let total=0;
+  let overlap=0;
 
-        selections.forEach(select => select.addEventListener("change", updateGrid));
-    </script>
+  // 黒丸表示
+  Object.keys(occupied).forEach(k=>{
+    const [x,y]=k.split(",").map(Number);
+    const cell=document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
+    if(cell){
+      total++;
+      if(occupied[k]>1){
+        cell.classList.add("overlap");
+        cell.textContent="●";
+        overlap++;
+      }
+    }
+  });
+
+  totalSpan.textContent=`ブーストエリア: ${total}`;
+  overlapSpan.textContent=`重なり: ${overlap}`;
+}
+
+// 保存履歴
+function saveHistory(){
+  const vals = Array.from(selections).map(s=>s.value);
+  const occupied = {};
+  selections.forEach(select=>{
+    const char = select.value;
+    if(char!=="なし" && characters[char]){
+      characters[char].positions.forEach(([x,y])=>{
+        const key=`${x},${y}`;
+        if(!occupied[key]) occupied[key]=0;
+        occupied[key]++;
+      });
+    }
+  });
+  let total = Object.keys(occupied).length;
+  let overlap = Object.values(occupied).filter(v=>v>1).length;
+
+  let hist=JSON.parse(localStorage.getItem("boostHistory")||"[]");
+  hist.unshift({ vals, total, overlap });
+  if(hist.length>10) hist.pop();
+  localStorage.setItem("boostHistory",JSON.stringify(hist));
+  renderHistory();
+}
+
+// 履歴表示
+function renderHistory(){
+  const hist=JSON.parse(localStorage.getItem("boostHistory")||"[]");
+  historyList.innerHTML="";
+  hist.forEach((h,i)=>{
+    const li=document.createElement("li");
+    li.innerHTML=`${h.vals.join(" | ")} (総マス:${h.total}, 重なり:${h.overlap})`;
+    const restoreBtn=document.createElement("button");
+    restoreBtn.textContent="復元";
+    restoreBtn.addEventListener("click",()=>{ selections.forEach((s,j)=>s.value=h.vals[j]); updateGrid(); });
+    li.appendChild(restoreBtn);
+    historyList.appendChild(li);
+  });
+}
+
+// 履歴クリア
+function clearHistory(){
+  localStorage.removeItem("boostHistory");
+  renderHistory();
+}
+
+// イベント
+selections.forEach(s=>s.addEventListener("change",updateGrid));
+saveHistoryBtn.addEventListener("click", saveHistory);
+clearHistoryBtn.addEventListener("click", clearHistory);
+
+// 初回レンダリング
+updateGrid();
+renderHistory();
+</script>
 </body>
 </html>
