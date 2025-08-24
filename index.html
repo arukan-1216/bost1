@@ -25,6 +25,8 @@
 <div class="stats">
   <span id="total">ブーストエリア: 0</span> |
   <span id="overlapCount">重なり: 0</span>
+  <button id="saveHistoryBtn">履歴を保存</button>
+  <button id="clearHistoryBtn">履歴をクリア</button>
 </div>
 
 <div class="controls" id="controls"></div>
@@ -33,8 +35,6 @@
 
 <div class="history">
   <h3>履歴</h3>
-  <button id="saveHistoryBtn">履歴を保存</button>
-  <button id="clearHistoryBtn">履歴をクリア</button>
   <ul id="historyList"></ul>
 </div>
 
@@ -95,7 +95,6 @@ function updateGrid(){
     c.classList.remove("overlap");
   });
 
-  // 選択順で塗りつぶし
   selections.forEach(select=>{
     const char = select.value;
     if(char!=="なし" && characters[char]){
@@ -104,37 +103,31 @@ function updateGrid(){
         if(!occupied[key]) occupied[key]=0;
         occupied[key]++;
         const cell=document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
-        if(cell){
-          cell.style.backgroundColor=characters[char].color;
-        }
+        if(cell) cell.style.backgroundColor=characters[char].color;
       });
     }
   });
 
-  let total=0;
-  let overlap=0;
+  let overlap = Object.values(occupied).filter(v=>v>1).length;
+  let district = Object.keys(occupied).length - overlap;
 
-  // 黒丸表示
   Object.keys(occupied).forEach(k=>{
-    const [x,y]=k.split(",").map(Number);
-    const cell=document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
-    if(cell){
-      total++;
-      if(occupied[k]>1){
+    if(occupied[k]>1){
+      const [x,y]=k.split(",").map(Number);
+      const cell=document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
+      if(cell){
         cell.classList.add("overlap");
         cell.textContent="●";
-        overlap++;
       }
     }
   });
 
-  totalSpan.textContent=`ブーストエリア: ${total}`;
+  totalSpan.textContent=`ブーストエリア: ${district}`;
   overlapSpan.textContent=`重なり: ${overlap}`;
 }
 
-// 保存履歴
 function saveHistory(){
-  const vals = Array.from(selections).map(s=>s.value);
+  const vals=Array.from(selections).map(s=>s.value);
   const occupied = {};
   selections.forEach(select=>{
     const char = select.value;
@@ -146,23 +139,22 @@ function saveHistory(){
       });
     }
   });
-  let total = Object.keys(occupied).length;
-  let overlap = Object.values(occupied).filter(v=>v>1).length;
+  const overlap = Object.values(occupied).filter(v=>v>1).length;
+  const district = Object.keys(occupied).length - overlap;
 
-  let hist=JSON.parse(localStorage.getItem("boostHistory")||"[]");
-  hist.unshift({ vals, total, overlap });
+  let hist = JSON.parse(localStorage.getItem("boostHistory")||"[]");
+  hist.unshift({ vals, district, overlap });
   if(hist.length>10) hist.pop();
-  localStorage.setItem("boostHistory",JSON.stringify(hist));
+  localStorage.setItem("boostHistory", JSON.stringify(hist));
   renderHistory();
 }
 
-// 履歴表示
 function renderHistory(){
-  const hist=JSON.parse(localStorage.getItem("boostHistory")||"[]");
+  const hist = JSON.parse(localStorage.getItem("boostHistory")||"[]");
   historyList.innerHTML="";
-  hist.forEach((h,i)=>{
+  hist.forEach(h=>{
     const li=document.createElement("li");
-    li.innerHTML=`${h.vals.join(" | ")} (総マス:${h.total}, 重なり:${h.overlap})`;
+    li.innerHTML=`${h.vals.join(" | ")} (ブーストエリア:${h.district}, 重なり:${h.overlap})`;
     const restoreBtn=document.createElement("button");
     restoreBtn.textContent="復元";
     restoreBtn.addEventListener("click",()=>{ selections.forEach((s,j)=>s.value=h.vals[j]); updateGrid(); });
@@ -171,7 +163,6 @@ function renderHistory(){
   });
 }
 
-// 履歴クリア
 function clearHistory(){
   localStorage.removeItem("boostHistory");
   renderHistory();
