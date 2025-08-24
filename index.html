@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ブーストエリア重なり確認ツール</title>
+    <title>ブーストエリア確認ツール</title>
     <style>
         .grid {
             display: grid;
@@ -19,12 +19,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            position: relative;
         }
-        .overlap-mark {
-            color: #000;
-            font-size: 20px;
-            position: absolute;
+        .overlap {
+            border: 4px solid darkred !important;
         }
         .controls {
             display: flex;
@@ -36,23 +33,10 @@
             display: flex;
             flex-direction: column;
         }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 20px;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 5px;
-            text-align: center;
-        }
-        .save-button {
-            margin-top: 10px;
-        }
     </style>
 </head>
 <body>
-    <h2>ブーストエリア重なり確認ツール</h2>
+    <h2>ブーストエリア確認ツール</h2>
     <div class="controls">
         <script>
             const characters = {
@@ -64,8 +48,8 @@
                 "リンゴ": { color: "#FFCCE5", positions: [[5,0], [6,0], [6,1], [6,2], [5,2], [6,3], [5,4]] },
                 "まぐろ": { color: "#CCE5FF", positions: [[1,0], [2,0], [1,1], [1,2], [2,2], [1,3], [0,4]] },
                 "りすクマ先輩": { color: "#E5CC99", positions: [[3,0], [4,0], [3,2], [4,2], [3,3], [3,4], [2,3]] },
-                "ラフィーナ": { color: "#FFD700", positions: [[6,0], [6,1], [7,1], [5,2], [5,3], [7,3], [6,4]] },
-                "クルーク": { color: "#9932CC", positions: [[1,0], [0,1], [1,1], [2,2], [0,3], [2,3], [1,4]] }
+                "ハーピー": { color: "#FFD700", positions: [[0,0], [1,0], [0,1], [0,2], [2,2], [2,3], [2,4]] },
+                "セリリ": { color: "#00FFFF", positions: [[4,0], [3,1], [3,2], [4,2], [3,3], [3,4], [5,4]] }
             };
 
             for (let i = 1; i <= 6; i++) {
@@ -81,22 +65,15 @@
             }
         </script>
     </div>
-    <button class="save-button" onclick="saveDeck()">デッキを保存する</button>
     <div class="grid" id="grid"></div>
-    <div id="summary"></div>
-    <div id="deckList"></div>
     <script>
         const grid = document.getElementById("grid");
         const selections = document.querySelectorAll(".selection");
-        const summary = document.getElementById("summary");
-        const deckList = document.getElementById("deckList");
-        let savedDecks = [];
 
         function updateGrid() {
             document.querySelectorAll(".cell").forEach(cell => {
                 cell.style.backgroundColor = "";
-                const mark = cell.querySelector(".overlap-mark");
-                if (mark) mark.remove();
+                cell.classList.remove("overlap");
             });
 
             let occupied = {};
@@ -107,33 +84,17 @@
                         const cell = document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
                         if (cell) {
                             cell.style.backgroundColor = characters[char].color;
-                            const key = `${x},${y}`;
-                            occupied[key] = (occupied[key] || 0) + 1;
+                            if (!occupied[`${x},${y}`]) {
+                                occupied[`${x},${y}`] = 0;
+                            }
+                            occupied[`${x},${y}`]++;
+                            if (occupied[`${x},${y}`] > 1) {
+                                cell.classList.add("overlap");
+                            }
                         }
                     });
                 }
             });
-
-            let unique = 0;
-            let overlap = 0;
-            Object.entries(occupied).forEach(([key, count]) => {
-                const [x, y] = key.split(',');
-                if (count > 1) {
-                    const cell = document.querySelector(`.cell[data-x='${x}'][data-y='${y}']`);
-                    if (!cell.querySelector(".overlap-mark")) {
-                        const mark = document.createElement("div");
-                        mark.className = "overlap-mark";
-                        mark.textContent = "◯";
-                        cell.appendChild(mark);
-                    }
-                    overlap++;
-                } else {
-                    unique++;
-                }
-            });
-
-            summary.innerHTML = `<p>重なっていないブーストエリア数: ${unique}</p><p>重なっているブーストエリア数: ${overlap}</p>`;
-            return { unique, overlap };
         }
 
         for (let y = 5; y >= 0; y--) {
@@ -147,28 +108,6 @@
         }
 
         selections.forEach(select => select.addEventListener("change", updateGrid));
-
-        function saveDeck() {
-            const currentDeck = Array.from(selections).map(s => s.value);
-            if (currentDeck.every(c => c === "なし")) return;
-
-            const deckKey = currentDeck.join(",");
-            if (savedDecks.some(d => d.key === deckKey)) return;
-
-            const { unique, overlap } = updateGrid();
-            savedDecks.push({ key: deckKey, members: currentDeck, unique, overlap });
-            renderDeckList();
-        }
-
-        function renderDeckList() {
-            if (savedDecks.length === 0) return;
-            let html = `<table><thead><tr><th>#</th><th>キャラクター</th><th>重なっていない数</th><th>重なっている数</th></tr></thead><tbody>`;
-            savedDecks.forEach((deck, index) => {
-                html += `<tr><td>${index + 1}</td><td>${deck.members.join(", ")}</td><td>${deck.unique}</td><td>${deck.overlap}</td></tr>`;
-            });
-            html += `</tbody></table>`;
-            deckList.innerHTML = html;
-        }
     </script>
 </body>
 </html>
