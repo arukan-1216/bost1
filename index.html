@@ -108,8 +108,9 @@ function updateGrid(){
     }
   });
 
-  let overlap = Object.values(occupied).filter(v=>v>1).length;
-  let district = Object.keys(occupied).length - overlap;
+  // 総マス数 = ユニークセル数
+  const totalBoost = Object.keys(occupied).length;
+  const overlap = Object.values(occupied).filter(v=>v>1).length;
 
   Object.keys(occupied).forEach(k=>{
     if(occupied[k]>1){
@@ -122,7 +123,7 @@ function updateGrid(){
     }
   });
 
-  totalSpan.textContent=`ブーストエリア: ${district}`;
+  totalSpan.textContent=`ブーストエリア: ${totalBoost}`;
   overlapSpan.textContent=`重なり: ${overlap}`;
 }
 
@@ -139,11 +140,11 @@ function saveHistory(){
       });
     }
   });
+  const totalBoost = Object.keys(occupied).length;
   const overlap = Object.values(occupied).filter(v=>v>1).length;
-  const district = Object.keys(occupied).length - overlap;
 
   let hist = JSON.parse(localStorage.getItem("boostHistory")||"[]");
-  hist.unshift({ vals, district, overlap });
+  hist.unshift({ vals, totalBoost, overlap });
   if(hist.length>10) hist.pop();
   localStorage.setItem("boostHistory", JSON.stringify(hist));
   renderHistory();
@@ -154,7 +155,7 @@ function renderHistory(){
   historyList.innerHTML="";
   hist.forEach(h=>{
     const li=document.createElement("li");
-    li.innerHTML=`${h.vals.join(" | ")} (ブーストエリア:${h.district}, 重なり:${h.overlap})`;
+    li.innerHTML=`${h.vals.join(" | ")} (ブーストエリア:${h.totalBoost}, 重なり:${h.overlap})`;
     const restoreBtn=document.createElement("button");
     restoreBtn.textContent="復元";
     restoreBtn.addEventListener("click",()=>{ selections.forEach((s,j)=>s.value=h.vals[j]); updateGrid(); });
